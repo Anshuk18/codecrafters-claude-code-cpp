@@ -104,8 +104,8 @@ int main(int argc, char* argv[]) {
             }
 
             std::string contents(
-                (std::isstreambuf_iterator<char>(file)),
-                std::isstreambuf_iterator<char>()
+                (std::istreambuf_iterator<char>(file)),
+                std::istreambuf_iterator<char>()
             );
 
             std::cout << contents;
