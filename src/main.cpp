@@ -79,12 +79,52 @@ int main(int argc, char* argv[]) {
         std::cerr << "No choices in response" << std::endl;
         return 1;
     }
+    json message = result["choices"][0]["message"];
+    if(message.contains("tool_calls") && !message["tool_calls"].empty())
+    {
+        json tool_call = message["tool_calls"][0];
+        json function = tool_call["function"];
 
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
+        std::string function_name = function["name"].get<std::string>();
+
+        if(function_name == "Read")
+        {
+            std:: string arguments_string = function["arguments"].get<std::string>();
+
+            json arguments = json::parse(arguments_string);
+
+            std::string file_path = arguments["file_path"].get<std::string>();
+
+            std::ifstream file(file_path);
+
+            if(!file.is_open())
+            {
+                std::cerr << "Failed to open file: " << file_path << std::endl;
+                return 1;
+            }
+
+            std::string contents(
+                (std::isstreambuf_iterator<char>(file)),
+                std::isstreambuf_iterator<char>()
+            );
+
+            std::cout << contents;
+        }
+        else
+        {
+            std::cerr << "Unknown tool: " << function_name << std::endl;
+            return 1;
+        }
+    }
+    else
+    {
+        if(!message["content"].is_null())
+        {
+            std::cout << message["content"].get<std::string>();
+        }
+    }
+
     std::cerr << "Logs from your program will appear here!" << std::endl;
-
-    // TODO: Uncomment the line below to pass the first stage
-    std::cout << result["choices"][0]["message"]["content"].get<std::string>();
-
+    
     return 0;
 }
