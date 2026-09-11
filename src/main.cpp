@@ -212,15 +212,46 @@ int main(int argc, char* argv[]) {
 
                     std::string command = arguments["command"].get<std::string>();
 
-                    int command_result = std::system("command");
-                    if(command_result == 0)
+                    std::string shell_command = command + " 2>&1";
+
+                    FILE* pipe = popen(shell_command.c_str(), "r");
+
+                    if(pipe == nullptr)
                     {
-                        std::cout << "Command executed successfully.\n";
+                        std::string error_message = "Failed to execute command";
+
+                        json tools_result = {
+                            {"role", "tool"}, 
+                            {"tool_call_id", tool_call["id"]}, 
+                            {"content", error_message}
+                        };
+                        messages.push_back(tools_result);
+                        continue;
                     }
-                    else
+
+                    std::string command_output;
+                    char buffer[4096];
+
+                    while(fgets(buffer, sizeof(buffer), pipe) != nullptr)
                     {
-                        std::cerr << "Command failed with code " << command_result << ".\n";
+                        command_output = command_output + buffer;
                     }
+
+                    int command_result = pclose(pipe);
+
+                    // If the command failed but produced no output,
+                    // give the model at least some useful information.
+                    if (command_result != 0 && command_output.empty())
+                    {
+                        command_output = "Command failed with exit code " + std::to_string(command_result);
+                    }
+
+                    json tools_result = {
+                        {"role", "tool"},
+                        {"tool_call_id", tool_call["id"]},
+                        {"content", command_output}
+                    };
+                    messages.push_back(tools_result);
                 }
                 else
                 {
