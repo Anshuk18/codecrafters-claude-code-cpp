@@ -65,8 +65,8 @@ int main(int argc, char* argv[]) {
                 {
                     {"type", "function"},
                     {"function", {
-                        {"name", "write"},
-                        {"description", "write content to a file"},
+                        {"name", "Write"},
+                        {"description", "Write content to a file"},
                         {"parameters", {
                             {"type", "object"},
                             {"required", json::array({"file_path", "content"})},
@@ -154,13 +154,7 @@ int main(int argc, char* argv[]) {
                     };
                     messages.push_back(tools_result);
                 }
-                else
-                {
-                    std::cerr << "Unknown tool: " << function_name << std::endl;
-                    return 1;
-                }
-
-                if(function_name == "write")
+                else if(function_name == "Write")
                 {
                     std::string arguments_string = function["arguments"].get<std::string>();
 
@@ -176,17 +170,14 @@ int main(int argc, char* argv[]) {
                         return 1;
                     }
 
-                    std::string contents(
-                    (std::istreambuf_iterator<char>(file)),
-                    std::istreambuf_iterator<char>()
-                    );
-
-                    file << contents << std::endl;
+                    std::string content = arguments["content"].get<std::string>();
+                    
+                    file << content;
 
                     json tools_result = {
                         {"role", "tool"}, 
                         {"tool_call_id", tool_call["id"]}, 
-                        {"content", contents}
+                        {"content", content}
                     };
                     messages.push_back(tools_result);
 
