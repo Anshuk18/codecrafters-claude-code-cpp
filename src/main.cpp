@@ -7,13 +7,15 @@
 
 using json = nlohmann::json;
 
+// argc--> argument count, argv--> argument array of char type
+
 int main(int argc, char* argv[]) {
     if (argc < 3 || std::string(argv[1]) != "-p") {
         std::cerr << "Expected first argument to be '-p'" << std::endl;
         return 1;
     }
 
-    std::string prompt = argv[2];
+    std::string prompt = argv[2]; // Get the prompt from the command line argument
 
     if (prompt.empty()) {
         std::cerr << "Prompt must not be empty" << std::endl;
@@ -31,96 +33,112 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    json request_body = {
-        {"model", "anthropic/claude-haiku-4.5"},
-        {"messages", json::array({
+    json messages = json::array({
             {{"role", "user"}, {"content", prompt}}
-        })},
-        {"tools", json::array({
-        {
-            {"type", "function"},
-            {"function", {
-                {"name", "Read"},
-                {"description", "Read & return the contents of a file"},
-                {"parameters", {
-                    {"type", "object"},
-                    {"properties", {
-                        {"file_path", {
-                            {"type", "string"},
-                            {"description", "The path to the file to read"}
-                        }}
-                    }},
-                    {"required", json::array({
+        });
+    
+    while(true)
+    {
+        json request_body = {
+            {"model", "anthropic/claude-haiku-4.5"},
+            {"messages", messages},
+            {"tools", json::array({
+                {
+                    {"type", "function"},
+                    {"function", {
+                        {"name", "Read"},
+                        {"description", "Read & return the contents of a file"},
+                        {"parameters", {
+                            {"type", "object"},
+                            {"properties", {
+                                {"file_path", {
+                                    {"type", "string"},
+                                    {"description", "The path to the file to read"}
+                                }}
+                            }},
+                        {"required", json::array({
                         "file_path"
-                    })}
-                }}
-            }}
-        }
-    })}
-    };
+                        })}
+                        }}
+                    }}
+                }
+             })}
+        };
 
-    cpr::Response response = cpr::Post(
+        // API Call
+        cpr::Response response = cpr::Post(
         cpr::Url{base_url + "/chat/completions"},
         cpr::Header{
             {"Authorization", "Bearer " + api_key},
             {"Content-Type", "application/json"}
         },
-        cpr::Body{request_body.dump()}
-    );
+        cpr::Body{request_body.dump()} // dump() func convert the JSON object to a string for the request body
+        );
 
-    if (response.status_code != 200) {
+        if (response.status_code != 200) {
         std::cerr << "HTTP error: " << response.status_code << std::endl;
         return 1;
-    }
+        }
 
-    json result = json::parse(response.text);
+        json result = json::parse(response.text); // response.text contains the response body as a string, which is parsed into a JSON object, so that we can navigate and extract the relevant information from it.
 
-    if (!result.contains("choices") || result["choices"].empty()) {
+        if (!result.contains("choices") || result["choices"].empty()) {
         std::cerr << "No choices in response" << std::endl;
         return 1;
-    }
-    json message = result["choices"][0]["message"];
-    if(message.contains("tool_calls") && !message["tool_calls"].empty())
-    {
-        json tool_call = message["tool_calls"][0];
-        json function = tool_call["function"];
+        }
 
-        std::string function_name = function["name"].get<std::string>();
+        json message = result["choices"][0]["message"];
+        messages.push_back(message);
 
-        if(function_name == "Read")
+        if(message.contains("tool_calls") && !message["tool_calls"].empty())
         {
-            std:: string arguments_string = function["arguments"].get<std::string>();
-
-            json arguments = json::parse(arguments_string);
-
-            std::string file_path = arguments["file_path"].get<std::string>();
-
-            std::ifstream file(file_path);
-
-            if(!file.is_open())
+            //json tool_call = message["tool_calls"][0];
+            for(const auto& tool_call : message["tool_calls"])
             {
-                std::cerr << "Failed to open file: " << file_path << std::endl;
-                return 1;
+                json function = tool_call["function"];
+
+                std::string function_name = function["name"].get<std::string>();
+
+                if(function_name == "Read")
+                {
+                    std::string arguments_string = function["arguments"].get<std::string>();
+
+                    json arguments = json::parse(arguments_string);
+
+                    std::string file_path = arguments["file_path"].get<std::string>();
+
+                    std::ifstream file(file_path);
+
+                    if(!file.is_open())
+                    {
+                        std::cerr << "Failed to open file: " << file_path << std::endl;
+                        return 1;
+                    }
+
+                    std::string contents(
+                    (std::istreambuf_iterator<char>(file)),
+                    std::istreambuf_iterator<char>()
+                    );
+
+                    json tools_result = {
+                        {{"role", "tool"}, {"tool_call_id", tool_call["id"]}, {"content", contents}}
+                    };
+                    messages.push_back(tools_result);
+                }
+                else
+                {
+                    std::cerr << "Unknown tool: " << function_name << std::endl;
+                    return 1;
+                }
             }
-
-            std::string contents(
-                (std::istreambuf_iterator<char>(file)),
-                std::istreambuf_iterator<char>()
-            );
-
-            std::cout << contents;
         }
         else
         {
-            std::cerr << "Unknown tool: " << function_name << std::endl;
-            return 1;
-        }
-    }
-    else
-    {
-        if(!message["content"].is_null())
-        {
-            std::cout << message["content"].get<std::string>();
+            if(!message["content"].is_null())
+            {
+                std::cout << message["content"].get<std::string>();
+                break;
+            }
         }
     }
 
