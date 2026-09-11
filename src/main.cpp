@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
                     {"type", "function"},
                     {"function", {
                         {"name", "Read"},
-                        {"description", "Read and return the contents of a file"},
+                        {"description", "Read & return the contents of a file"},
                         {"parameters", {
                             {"type", "object"},
                             {"properties", {
