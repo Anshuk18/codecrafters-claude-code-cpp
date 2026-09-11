@@ -87,6 +87,27 @@ int main(int argc, char* argv[]) {
                                         }
                         }
                     }}
+                },
+                {
+                    {"type", "function"},
+                    {"function", {
+                        {"name", "Bash"},
+                        {"description", "Execute a shell command"},
+                        {"parameters", {
+                            {"type", "object"},
+                            {"required", json::array({"command"})},
+                            {"properties", {
+                                {"command", {
+                                    {"type", "string"},
+                                    {"description", "The command to execute"}
+                                            }
+                                }
+                                            }
+                            }
+                                        }
+                        }
+                                }
+                    }
                 }
             })
             }
@@ -182,6 +203,24 @@ int main(int argc, char* argv[]) {
                     messages.push_back(tools_result);
 
                     file.close();
+                }
+                else if(function_name == "Bash")
+                {
+                    std::string arguments_string = function["arguments"].get<std::string>();
+
+                    json arguments = json::parse(arguments_string);
+
+                    std::string command = arguments["command"].get<std::string>();
+
+                    int command_result = std::system("command");
+                    if(command_result == 0)
+                    {
+                        std::cout << "Command executed successfully.\n";
+                    }
+                    else
+                    {
+                        std::cerr << "Command failed with code " << command_result << ".\n";
+                    }
                 }
                 else
                 {
