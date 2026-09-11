@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
                     {"type", "function"},
                     {"function", {
                         {"name", "Read"},
-                        {"description", "Read & return the contents of a file"},
+                        {"description", "Read and return the contents of a file"},
                         {"parameters", {
                             {"type", "object"},
                             {"properties", {
@@ -121,9 +121,9 @@ int main(int argc, char* argv[]) {
                     );
 
                     json tools_result = {
-                        {"role", "tool"}, 
+                        {{"role", "tool"}, 
                         {"tool_call_id", tool_call["id"]}, 
-                        {"content", contents}
+                        {"content", contents}}
                     };
                     messages.push_back(tools_result);
                 }
