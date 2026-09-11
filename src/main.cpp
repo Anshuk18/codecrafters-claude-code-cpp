@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <cstdio>
 #include <iostream>
 #include <string>
 
@@ -214,7 +215,7 @@ int main(int argc, char* argv[]) {
 
                     std::string shell_command = command + " 2>&1";
 
-                    FILE* pipe = popen(shell_command.c_str(), "r");
+                    FILE* pipe = _popen(shell_command.c_str(), "r");
 
                     if(pipe == nullptr)
                     {
@@ -237,7 +238,7 @@ int main(int argc, char* argv[]) {
                         command_output = command_output + buffer;
                     }
 
-                    int command_result = pclose(pipe);
+                    int command_result = _pclose(pipe);
 
                     // If the command failed but produced no output,
                     // give the model at least some useful information.

@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.13)
 
 project(codecrafters-claude-code)
 
+if(MSVC)
+    add_compile_definitions(_USE_STD_VECTOR_ALGORITHMS=0)
+endif()
+
 set(CMAKE_CXX_STANDARD 23) # Enable the C++23 standard
 
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp src/*.hpp)
